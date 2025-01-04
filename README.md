@@ -1,4 +1,4 @@
-# ComfyUI-LatentSyncWrapper
+# ComfyUI-LatentSync-Node
 
 Unofficial [LatentSync](https://github.com/bytedance/LatentSync) implementation for [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on windows.
 
