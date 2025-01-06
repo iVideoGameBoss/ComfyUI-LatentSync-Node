@@ -169,3 +169,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Added for ComfyUI Latent Sync Node
+checkpoints/latentsync_unet.pt
+checkpoints/whisper/tiny.pt

@@ -320,6 +320,8 @@ class LatentSyncNode:
                 
                 out_tensor_list.append(frame)
 
+            processed_frames = torch.stack(out_tensor_list)
+
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0
             print(f"Frame count after normalization: {processed_frames.shape[0]}")
