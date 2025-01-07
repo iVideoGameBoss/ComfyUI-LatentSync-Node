@@ -32,7 +32,7 @@ from einops import rearrange
 
 from ..models.unet import UNet3DConditionModel
 from ..utils.image_processor import ImageProcessor
-from ..utils.util import read_video, read_audio, write_video
+from ..utils.util import read_audio, write_video, read_video
 import tqdm
 import soundfile as sf
 
@@ -290,13 +290,16 @@ class LipsyncPipeline(DiffusionPipeline):
         return original_mel[:, start_idx:end_idx].unsqueeze(0)
 
     def affine_transform_video(self, video_path):
-        video_frames = read_video(video_path, use_decord=False)
+        video_frames = read_video(video_path, use_decord=True)
         faces = []
         boxes = []
         affine_matrices = []
         print(f"Affine transforming {len(video_frames)} faces...")
-        for frame in tqdm.tqdm(video_frames):
+        for i, frame in enumerate(tqdm.tqdm(video_frames)):
             face, box, affine_matrix = self.image_processor.affine_transform(frame)
+            if face is None:
+                print(f"Warning: Skipping frame {i} due to face detection failure")
+                continue
             faces.append(face)
             boxes.append(box)
             affine_matrices.append(affine_matrix)
@@ -350,7 +353,10 @@ class LipsyncPipeline(DiffusionPipeline):
         self.image_processor = ImageProcessor(height, mask=mask, device="cuda")
         self.set_progress_bar_config(desc=f"Sample frames: {num_frames}")
 
-        video_frames, original_video_frames, boxes, affine_matrices = self.affine_transform_video(video_path)
+         # Use decord to directly read video frames
+        original_video_frames = read_video(video_path, use_decord=True)
+        faces, original_video_frames, boxes, affine_matrices = self.affine_transform_video(video_path)
+        
         audio_samples = read_audio(audio_path)
 
         # 1. Default height and width to unet
@@ -379,9 +385,9 @@ class LipsyncPipeline(DiffusionPipeline):
             whisper_feature = self.audio_encoder.audio2feat(audio_path)
             whisper_chunks = self.audio_encoder.feature2chunks(feature_array=whisper_feature, fps=video_fps)
 
-            num_inferences = min(len(video_frames), len(whisper_chunks)) // num_frames
+            num_inferences = min(len(faces), len(whisper_chunks)) // num_frames
         else:
-            num_inferences = len(video_frames) // num_frames
+            num_inferences = len(faces) // num_frames
 
         synced_video_frames = []
         masked_video_frames = []
@@ -419,7 +425,7 @@ class LipsyncPipeline(DiffusionPipeline):
                     mel_overlap = torch.cat([empty_mel_overlap, mel_overlap])
             else:
                 mel_overlap = None
-            inference_video_frames = video_frames[i * num_frames : (i + 1) * num_frames]
+            inference_video_frames = faces[i * num_frames : (i + 1) * num_frames]
             latents = all_latents[:, :, i * num_frames : (i + 1) * num_frames]
             pixel_values, masked_pixel_values, masks = self.image_processor.prepare_masks_and_masked_images(
                 inference_video_frames, affine_transform=False
@@ -484,7 +490,7 @@ class LipsyncPipeline(DiffusionPipeline):
             )
             synced_video_frames.append(decoded_latents)
             masked_video_frames.append(masked_pixel_values)
-
+        
         synced_video_frames = self.restore_video(
             torch.cat(synced_video_frames), original_video_frames, boxes, affine_matrices
         )

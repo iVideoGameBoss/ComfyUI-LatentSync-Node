@@ -116,51 +116,76 @@ class ImageProcessor:
 
         return pixel_values, masked_pixel_values, mask
 
-    def affine_transform(self, image: torch.Tensor) -> np.ndarray:
+    def affine_transform(self, image: np.ndarray) -> Union[np.ndarray, None]:
         # image = rearrange(image, "c h w-> h w c").numpy()
-        if self.fa is None:
-            landmark_coordinates = np.array(self.detect_facial_landmarks(image))
-            lm68 = mediapipe_lm478_to_face_alignment_lm68(landmark_coordinates)
-        else:
-            detected_faces = self.fa.get_landmarks(image)
-            if detected_faces is None:
-                raise RuntimeError("Face not detected")
-            lm68 = detected_faces[0]
+        try:
+            if self.fa is None:
+                landmark_coordinates = np.array(self.detect_facial_landmarks(image))
+                lm68 = mediapipe_lm478_to_face_alignment_lm68(landmark_coordinates)
+            else:
+                detected_faces = self.fa.get_landmarks(image)
+                if detected_faces is None:
+                    raise RuntimeError("Face not detected")
+                lm68 = detected_faces[0]
 
-        points = self.smoother.smooth(lm68)
-        lmk3_ = np.zeros((3, 2))
-        lmk3_[0] = points[17:22].mean(0)
-        lmk3_[1] = points[22:27].mean(0)
-        lmk3_[2] = points[27:36].mean(0)
-        # print(lmk3_)
-        face, affine_matrix = self.restorer.align_warp_face(
-            image.copy(), lmks3=lmk3_, smooth=True, border_mode="constant"
-        )
-        box = [0, 0, face.shape[1], face.shape[0]]  # x1, y1, x2, y2
-        face = cv2.resize(face, (self.resolution, self.resolution), interpolation=cv2.INTER_CUBIC)
-        face = rearrange(torch.from_numpy(face), "h w c -> c h w")
-        return face, box, affine_matrix
+            points = self.smoother.smooth(lm68)
+            lmk3_ = np.zeros((3, 2))
+            lmk3_[0] = points[17:22].mean(0)
+            lmk3_[1] = points[22:27].mean(0)
+            lmk3_[2] = points[27:36].mean(0)
+            # print(lmk3_)
+            face, affine_matrix = self.restorer.align_warp_face(
+                image.copy(), lmks3=lmk3_, smooth=True, border_mode="constant"
+            )
+            box = [0, 0, face.shape[1], face.shape[0]]  # x1, y1, x2, y2
+            face = cv2.resize(face, (self.resolution, self.resolution), interpolation=cv2.INTER_CUBIC)
+            face = rearrange(torch.from_numpy(face), "h w c -> c h w")
+            return face, box, affine_matrix
+        except RuntimeError as e:
+            print(f"Warning: Face not detected in frame: {e}")
+            return None, None, None
+
+
 
     def preprocess_fixed_mask_image(self, image: torch.Tensor, affine_transform=False):
         if affine_transform:
-            image, _, _ = self.affine_transform(image)
+            face, _, _ = self.affine_transform(image)
+            if face is None:
+                return None, None, None
         else:
-            image = self.resize(image)
+           image = self.resize(image)
+        
         pixel_values = self.normalize(image / 255.0)
         masked_pixel_values = pixel_values * self.mask_image
-        return pixel_values, masked_pixel_values, self.mask_image[0:1]
-
+        return pixel_values, masked_pixel_values, self.mask_image[0:1]    
+    
     def prepare_masks_and_masked_images(self, images: Union[torch.Tensor, np.ndarray], affine_transform=False):
         if isinstance(images, np.ndarray):
             images = torch.from_numpy(images)
         if images.shape[3] == 3:
             images = rearrange(images, "b h w c -> b c h w")
-        if self.mask == "fix_mask":
-            results = [self.preprocess_fixed_mask_image(image, affine_transform=affine_transform) for image in images]
-        else:
-            results = [self.preprocess_one_masked_image(image) for image in images]
 
-        pixel_values_list, masked_pixel_values_list, masks_list = list(zip(*results))
+        pixel_values_list = []
+        masked_pixel_values_list = []
+        masks_list = []
+        for image in images:
+            if self.mask == "fix_mask":
+                pixel_values, masked_pixel_values, mask = self.preprocess_fixed_mask_image(image, affine_transform=affine_transform)
+            else:
+                pixel_values, masked_pixel_values, mask = self.preprocess_one_masked_image(image)
+            
+            if pixel_values is None:
+                print("Skipping frame due to detection failure.")
+                continue
+
+            pixel_values_list.append(pixel_values)
+            masked_pixel_values_list.append(masked_pixel_values)
+            masks_list.append(mask)
+        
+        # Ensure that the results are not empty
+        if not pixel_values_list:
+          raise RuntimeError("No frames could be processed due to face detection failure.")
+
         return torch.stack(pixel_values_list), torch.stack(masked_pixel_values_list), torch.stack(masks_list)
 
     def process_images(self, images: Union[torch.Tensor, np.ndarray]):

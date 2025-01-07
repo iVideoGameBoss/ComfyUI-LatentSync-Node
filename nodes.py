@@ -178,35 +178,40 @@ class LatentSyncNode:
     FUNCTION = "inference"
 
     def inference(self, images, audio, seed):
-        cur_dir = get_ext_dir()
-        ckpt_dir = os.path.join(cur_dir, "checkpoints")
-        output_dir = folder_paths.get_output_directory()
-        temp_dir = os.path.join(output_dir, "temp_frames")
-        os.makedirs(output_dir, exist_ok=True)
-        os.makedirs(temp_dir, exist_ok=True)
+        """Performs the main inference process to synchronize lip movements with the audio."""
+        cur_dir = get_ext_dir() # Get the current directory
+        ckpt_dir = os.path.join(cur_dir, "checkpoints") # Get the path for the checkpoints
+        output_dir = folder_paths.get_output_directory() # Get the path for comfyUI output directory
+        temp_dir = os.path.join(output_dir, "temp_frames") # Get the path for the temporary directory that is used to store frames for video creation
+        os.makedirs(output_dir, exist_ok=True) # Create the output directory, if it does not exist
+        os.makedirs(temp_dir, exist_ok=True)  # Create a temporary directory, if it does not exist
 
         # Create a temporary video file from the input frames
-        output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5))
-        temp_video_path = os.path.join(output_dir, f"temp_{output_name}.mp4")
-        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_out.mp4")
+        output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5)) # Generates random filename of 5 chars
+        temp_video_path = os.path.join(output_dir, f"temp_{output_name}.mp4") # Path for temp video file
+        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_out.mp4") # Path for final output video
 
         # Save frames as temporary video
-        import torchvision.io as io
-        if isinstance(images, list):
-            frames = torch.stack(images)
-        else:
+        import torchvision.io as io # Import the module to deal with reading and writing videos
+        # Save frames as temporary video
+        if isinstance(images, list):  # If the input images are a list
+            frames = torch.stack(images)  # Stack the list of frames to a single tensor
+        else:  # If the images input is not a list but an image
             frames = images
-        print(f"Initial frame count: {frames.shape[0]}")
+            print(f"Initial frame count: {frames.shape[0]}")
+            if frames.shape[0] == 0:
+                raise RuntimeError("No frames could be processed due to face detection failure.")
 
-        frames = (frames * 255).byte()
-        if len(frames.shape) == 3:
+        frames = (frames * 255).byte()  # Convert frames to byte format (0-255 range)
+        if len(frames.shape) == 3: # If it is a 3-dimensional tensor then add an extra dimention
             frames = frames.unsqueeze(0)
         print(f"Frame count before writing video: {frames.shape[0]}")
 
-        if isinstance(frames, torch.Tensor):
+        if isinstance(frames, torch.Tensor): # Move the data to cpu
             frames = frames.cpu()
         try:
-            io.write_video(temp_video_path, frames, fps=25, video_codec='h264')
+            io.write_video(temp_video_path, frames, fps=25, video_codec='h264') # Save frames as a video
+        # Handles a type error when using a newer version of `torchvision`
         except TypeError:
             # Fallback for newer versions
             import av
@@ -224,9 +229,9 @@ class LatentSyncNode:
             packet = stream.encode(None)
             container.mux(packet)
             container.close()
-        video_path = normalize_path(temp_video_path)
+        video_path = normalize_path(temp_video_path) # Normalize the path for the video file to work on all OSs
 
-        if not os.path.exists(ckpt_dir):
+        if not os.path.exists(ckpt_dir): # Checks if the ckpt_dir folder exists, and if it does not then download all the necessary model files
             print("Downloading model checkpoints... This may take a while.")
             from huggingface_hub import snapshot_download
             snapshot_download(repo_id="chunyu-li/LatentSync",
@@ -234,33 +239,33 @@ class LatentSyncNode:
                                     local_dir=ckpt_dir, local_dir_use_symlinks=False)
             print("Model checkpoints downloaded successfully!")
 
-        inference_script_path = os.path.join(cur_dir, "scripts", "inference.py")
-        unet_config_path = normalize_path(os.path.join(cur_dir, "configs", "unet", "second_stage.yaml"))
-        scheduler_config_path = normalize_path(os.path.join(cur_dir, "configs"))
-        ckpt_path = normalize_path(os.path.join(ckpt_dir, "latentsync_unet.pt"))
-        whisper_ckpt_path = normalize_path(os.path.join(ckpt_dir, "whisper", "tiny.pt"))
+        inference_script_path = os.path.join(cur_dir, "scripts", "inference.py") # Get the path for the inference.py file
+        unet_config_path = normalize_path(os.path.join(cur_dir, "configs", "unet", "second_stage.yaml")) # Get the path to unet settings file
+        scheduler_config_path = normalize_path(os.path.join(cur_dir, "configs")) # Get the path to the scheduler settings file
+        ckpt_path = normalize_path(os.path.join(ckpt_dir, "latentsync_unet.pt")) # Path to the UNet model checkpoint
+        whisper_ckpt_path = normalize_path(os.path.join(ckpt_dir, "whisper", "tiny.pt")) # Path to the whisper model checkpoint
 
         # resample audio to 16k hz and save to wav
-        waveform = audio["waveform"]
-        sample_rate = audio["sample_rate"]
+        waveform = audio["waveform"] # Get the audio waveform data
+        sample_rate = audio["sample_rate"] # Get the audio sample rate
 
-        if waveform.dim() == 3: # Expected shape: [channels, samples]
-            waveform = waveform.squeeze(0)
+        if waveform.dim() == 3: # Check if the audio is a tensor with dimension of 3, such as [channels, sample]
+            waveform = waveform.squeeze(0) # Removes the channel dimension if the audio is stereo
 
-        if sample_rate != 16000:
-            new_sample_rate = 16000
-            waveform_16k = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)(waveform)
-            waveform, sample_rate = waveform_16k, new_sample_rate
+        if sample_rate != 16000: # Check if the audio sample rate is different than 16000
+            new_sample_rate = 16000 # Set the new sample rate to 16000
+            waveform_16k = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=new_sample_rate)(waveform) # Resample audio to 16000hz
+            waveform, sample_rate = waveform_16k, new_sample_rate # Update the waveform and sample_rate variables
 
-        audio_path = normalize_path(os.path.join(output_dir, f"latentsync_{output_name}_audio.wav"))
-        torchaudio.save(audio_path, waveform, sample_rate)
+        audio_path = normalize_path(os.path.join(output_dir, f"latentsync_{output_name}_audio.wav")) # Path for the output audio file
+        torchaudio.save(audio_path, waveform, sample_rate)  # Save audio to a .wav file
 
-        print(f"Using video path: {video_path}")
-        print(f"Video file exists: {os.path.exists(video_path)}")
-        print(f"Video file size: {os.path.getsize(video_path)} bytes")
+        print(f"Using video path: {video_path}") # Print out path to video being processed
+        print(f"Video file exists: {os.path.exists(video_path)}") # Check if the video file exists
+        print(f"Video file size: {os.path.getsize(video_path)} bytes")  # Print video file size
 
-        assert os.path.exists(video_path), f"video_path not exists: {video_path}"
-        assert os.path.exists(audio_path), f"audio_path not exists: {audio_path}"
+        assert os.path.exists(video_path), f"video_path not exists: {video_path}" # Exit if video is not found at the given path
+        assert os.path.exists(audio_path), f"audio_path not exists: {audio_path}" # Exit if the audio file is not found at the given path
 
         try:
             # Add the package root to Python path
@@ -294,8 +299,8 @@ class LatentSyncNode:
             inference_module.main(config, args)
 
             # Load the processed video back as frames
-            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
-            print(f"Frame count after reading video: {processed_frames.shape[0]}")
+            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0] # Read video from the output path, with shape [T, H, W, C]
+            print(f"Frame count after reading video: {processed_frames.shape[0]}") # prints the number of frames in processed video
             
             # Process frames following wav2lip.py pattern
             out_tensor_list = []
@@ -320,11 +325,11 @@ class LatentSyncNode:
                 
                 out_tensor_list.append(frame)
 
-            processed_frames = torch.stack(out_tensor_list)
-
+            processed_frames = torch.stack(out_tensor_list) # Stack the frame tensors together
+            
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
-            processed_frames = processed_frames.float() / 255.0
-            print(f"Frame count after normalization: {processed_frames.shape[0]}")
+            processed_frames = processed_frames.float() / 255.0 # Normalize to [0, 1]
+            print(f"Frame count after normalization: {processed_frames.shape[0]}") # Prints the frame count after normalization
 
             # Fix dimensions for VideoCombine compatibility
             if len(processed_frames.shape) == 3:  
@@ -347,6 +352,7 @@ class LatentSyncNode:
                 os.remove(output_video_path)
             shutil.rmtree(temp_dir, ignore_errors=True)
                 
+        # If any of the above steps failed, remove temporary files
         except Exception as e:
             # Clean up on error
             if os.path.exists(temp_video_path):
@@ -359,7 +365,7 @@ class LatentSyncNode:
             traceback.print_exc()
             raise
 
-        return (processed_frames,)
+        return (processed_frames,) # Returns the processed image frames
 
 class VideoLengthAdjuster:
     @classmethod
