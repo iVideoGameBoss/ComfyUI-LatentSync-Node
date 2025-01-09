@@ -370,14 +370,10 @@ class LatentSyncNode:
             # Call main with both config and args
             inference_module.main(config, args)
             
-            print(f"Exit inference_module")
-            print(f"output_video_path: {output_video_path}")
             # Load the processed video back as frames
-            processed_frames = processed_frames.float() / 255.0 # Normalize to [0, 1]
+            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
+            print(f"Frame count after reading video: {processed_frames.shape[0]}")
             
-
-            print(f"Frame count after reading video: {processed_frames.shape[0]}") # prints the number of frames in processed video
-
             # Process frames following wav2lip.py pattern
             out_tensor_list = []
             for frame in processed_frames:
@@ -401,9 +397,9 @@ class LatentSyncNode:
                 
                 out_tensor_list.append(frame)
 
-            processed_frames = torch.stack(out_tensor_list) # Stack the frame tensors together
-            processed_frames = processed_frames.float() / 255.0 # Normalize to [0, 1]
-            print(f"Frame count after normalization: {processed_frames.shape[0]}") # Prints the frame count after normalization
+            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
+            processed_frames = processed_frames.float() / 255.0
+            print(f"Frame count after normalization: {processed_frames.shape[0]}")
 
             # Fix dimensions for VideoCombine compatibility
             if len(processed_frames.shape) == 3:  
