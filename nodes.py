@@ -46,14 +46,13 @@ def write_video_high_quality(
     temp_dir = os.path.dirname(filename)
     temp_frames_dir = os.path.join(temp_dir, "temp_frames")
     os.makedirs(temp_frames_dir, exist_ok=True)
-
     try:
         # Ensure video_array is on CPU and in the right format
         if isinstance(video_array, torch.Tensor):
             video_array = video_array.cpu()
             if video_array.shape[-1] != 3:  # If not in HWC format
                 video_array = video_array.permute(0, 2, 3, 1)  # BCHW -> BHWC
-
+        
         for i, frame in enumerate(video_array):
             # Convert to numpy and ensure in range [0, 255]
             frame_np = frame.numpy()
@@ -62,19 +61,29 @@ def write_video_high_quality(
             
             # Convert RGB to BGR for OpenCV
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame_bgr)
-
+            
+            # Use PNG compression settings for higher quality
+            compression_params = [
+                cv2.IMWRITE_PNG_COMPRESSION, 0,  # 0 = no compression, 9 = max compression
+                cv2.IMWRITE_PNG_STRATEGY, cv2.IMWRITE_PNG_STRATEGY_DEFAULT
+            ]
+            cv2.imwrite(
+                os.path.join(temp_frames_dir, f"frame_{i:04d}.png"),
+                frame_bgr,
+                compression_params
+            )
+        
         temp_frames_dir = os.path.normpath(temp_frames_dir).replace('\\', '/')
         filename = os.path.normpath(filename).replace('\\', '/')
-
+        
         command = [
             "ffmpeg",
             "-y",
             "-framerate", str(fps),
             "-i", os.path.join(temp_frames_dir, "frame_%04d.png"),
             "-c:v", "libx264",
-            "-preset", "slow",
-            "-crf", "5",
+            "-preset", "veryslow",  # Highest quality preset
+            "-crf", "3",  # Video quality
             "-pix_fmt", "yuv420p",
             filename
         ]
@@ -259,7 +268,7 @@ class LatentSyncNode:
         # Create a temporary video file from the input frames
         output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5)) # Generates random filename of 5 chars
         temp_video_path = os.path.join(output_dir, f"temp_{output_name}.mp4") # Path for temp video file
-        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_highres_audio_out.mp4") # Path for final output video
+        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_medium_combined_video_audio_out.mp4") # Path for final output video
 
         # Save frames as temporary video
         import torchvision.io as io # Import the module to deal with reading and writing videos
@@ -280,6 +289,7 @@ class LatentSyncNode:
         if isinstance(frames, torch.Tensor): # Move the data to cpu
             frames = frames.cpu()
         try:
+            print(f"Writing high quality video: {temp_video_path}")
             write_video_high_quality(temp_video_path, frames, fps=25)
             # io.write_video(temp_video_path, frames, fps=25, video_codec='h264') # Save frames as a video
         # Handles a type error when using a newer version of `torchvision`
@@ -355,6 +365,7 @@ class LatentSyncNode:
             args = argparse.Namespace(
                 unet_config_path=unet_config_path,
                 inference_ckpt_path=ckpt_path,
+                output_name=output_name,
                 video_path=video_path,
                 audio_path=audio_path,
                 video_out_path=output_video_path,
@@ -366,10 +377,11 @@ class LatentSyncNode:
             # Load the config
             config = OmegaConf.load(unet_config_path)
             
-            print(f"Enter inference_module")
+            print(f"Enter inference_module - loading model for lip sync..please wait")
             # Call main with both config and args
             inference_module.main(config, args)
             
+            print(f"Loading proccessed video back")
             # Load the processed video back as frames
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             print(f"Frame count after reading video: {processed_frames.shape[0]}")
@@ -396,6 +408,7 @@ class LatentSyncNode:
                 frame = frame.permute(2, 0, 1)
                 
                 out_tensor_list.append(frame)
+            # processed_frames = torch.stack(out_tensor_list) # Stack the frame tensors together
 
             processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0

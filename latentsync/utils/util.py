@@ -183,39 +183,40 @@ def write_video(
     temp_frames_dir = os.path.join(temp_dir, "temp_frames")
     os.makedirs(temp_frames_dir, exist_ok=True)
 
+    compression_params = [
+        cv2.IMWRITE_PNG_COMPRESSION, 0,  # No compression for max quality
+        cv2.IMWRITE_PNG_STRATEGY, cv2.IMWRITE_PNG_STRATEGY_DEFAULT
+    ]
+
     if isinstance(video_array, torch.Tensor):
         for i, frame in enumerate(video_array):
                 if frame.is_cuda:
-                    frame = frame.cpu().numpy() # if frame is on GPU move it to CPU
+                    frame = frame.cpu().numpy()
                 else:
-                    frame = frame.numpy() # if frame is already on CPU, convert it to numpy
+                    frame = frame.numpy()
                 frame = frame.astype(np.uint8)
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame)
+                cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame, compression_params)
     elif isinstance(video_array, np.ndarray):
           for i, frame in enumerate(video_array):
                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-               cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame)
+               cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame, compression_params)
 
-    bitrate = 12000 # Set a fixed 12000kbps bitrate
+    bitrate = 12000 
     
-    # Normalize paths for Windows
     temp_frames_dir = os.path.normpath(temp_frames_dir).replace('\\', '/')
     filename = os.path.normpath(filename).replace('\\', '/')
         
     command = [
         "ffmpeg",
         "-y",
-        "-framerate",
-        str(fps),
-        "-i",
-        os.path.join(temp_frames_dir, "frame_%04d.png"),
-        "-c:v",
-        "libx264",
-         "-crf",
-        str(crf),
-        "-pix_fmt",
-        "yuv420p",
+        "-framerate", str(fps),
+        "-i", os.path.join(temp_frames_dir, "frame_%04d.png"),
+        "-c:v", "libx264",
+        "-preset", "veryslow",  # Highest quality preset
+        "-crf", str(crf),
+        "-pix_fmt", "yuv420p",
+        # "-b:v", f"{bitrate}k",  # Set bitrate
         filename,
     ]
         

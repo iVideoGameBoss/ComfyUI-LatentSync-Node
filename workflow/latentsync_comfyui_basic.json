@@ -1,6 +1,6 @@
 {
-  "last_node_id": 52,
-  "last_link_id": 61,
+  "last_node_id": 53,
+  "last_link_id": 62,
   "nodes": [
     {
       "id": 43,
@@ -14,7 +14,7 @@
         126
       ],
       "flags": {},
-      "order": 5,
+      "order": 6,
       "mode": 0,
       "inputs": [
         {
@@ -55,10 +55,10 @@
       ],
       "size": [
         373.38238525390625,
-        334
+        546.777587890625
       ],
       "flags": {},
-      "order": 6,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -134,7 +134,7 @@
         78
       ],
       "flags": {},
-      "order": 3,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
@@ -172,42 +172,6 @@
       "widgets_values": [
         "pingpong"
       ]
-    },
-    {
-      "id": 51,
-      "type": "Reroute",
-      "pos": [
-        765.86328125,
-        886.9187622070312
-      ],
-      "size": [
-        75,
-        26
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "",
-          "type": "*",
-          "link": 60
-        }
-      ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "AUDIO",
-          "links": [
-            61
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "showOutputText": false,
-        "horizontal": false
-      }
     },
     {
       "id": 40,
@@ -313,7 +277,7 @@
           "type": "AUDIO",
           "links": [
             54,
-            60
+            62
           ],
           "slot_index": 0
         }
@@ -328,15 +292,51 @@
       ]
     },
     {
+      "id": 51,
+      "type": "Reroute",
+      "pos": [
+        765.86328125,
+        886.9187622070312
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 62
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            61
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
       "id": 52,
       "type": "Note",
       "pos": [
-        535.9493408203125,
-        951.6057739257812
+        526.2166748046875,
+        969.1245727539062
       ],
       "size": [
-        335.9683837890625,
-        193.81422424316406
+        314.556640625,
+        305.7392272949219
       ],
       "flags": {},
       "order": 2,
@@ -345,7 +345,30 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "High resolution video is placed in ComfyUI\\output folder. We display low resolution video as final output so you can see results in video combine node. \n\nYou will find the video labeled like this:\n\nlatentsync_[random_number]_highres_audio_out.mp4"
+        "Output Details for ComfyUI\n\nHigh-resolution videos are saved in the ComfyUI\\output folder. The final output displayed in the \"Video Combine Node\" (shown to your right) is a low-resolution video.\n\nYou can use the high-resolution video files in your workflow or import them into your video editing program.\n\nContents of the ComfyUI\\output folder:\n\nlatentsync_[#]_high_video_sync_out.mp4\nlatentsync_[#]_high_audio_sync_out.wav\nlatentsync_[#]_medium_combined_video_audio_out.mp4\n\nThe following low-resolution files were created by the \"Video Combine Node\" (shown to your right):\n\nlatentsync_00001-audio.mp4\nlatentsync_00001.mp4\nlatentsync_00001.png"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 53,
+      "type": "Note",
+      "pos": [
+        -200.98486328125,
+        601.4152221679688
+      ],
+      "size": [
+        326.03729248046875,
+        73.42185974121094
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "ComfyUI-LatentSync-Node will always produce a video at 25 fps. Changing the force_rate on the \"load video\" node shown below does not do anything. "
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -393,30 +416,30 @@
       "AUDIO"
     ],
     [
-      60,
-      37,
-      0,
-      51,
-      0,
-      "*"
-    ],
-    [
       61,
       51,
       0,
       41,
       1,
       "AUDIO"
+    ],
+    [
+      62,
+      37,
+      0,
+      51,
+      0,
+      "*"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.7719562355969887,
+      "scale": 1.0274737495796025,
       "offset": [
-        19.061287729576577,
-        -384.770009975854
+        365.7074459703854,
+        -498.40180106158806
       ]
     },
     "workspace_info": {

@@ -325,6 +325,7 @@ class LipsyncPipeline(DiffusionPipeline):
     @torch.no_grad()
     def __call__(
         self,
+        output_name: str,
         video_path: str,
         audio_path: str,
         video_out_path: str,
@@ -353,10 +354,11 @@ class LipsyncPipeline(DiffusionPipeline):
         self.image_processor = ImageProcessor(height, mask=mask, device="cuda")
         self.set_progress_bar_config(desc=f"Sample frames: {num_frames}")
 
-         # Use decord to directly read video frames
-        original_video_frames = read_video(video_path, change_fps=False,use_decord=True)
+        # Use decord to directly read video frames
+        # original_video_frames = read_video(video_path, change_fps=False,use_decord=True)
         faces, original_video_frames, boxes, affine_matrices = self.affine_transform_video(video_path)
         
+        print(f"Reading audio {audio_path}")
         audio_samples = read_audio(audio_path)
 
         # 1. Default height and width to unet
@@ -365,6 +367,7 @@ class LipsyncPipeline(DiffusionPipeline):
             width = width or self.unet.config.sample_size * self.vae_scale_factor
 
         # 2. Check inputs
+        print(f"check_inputs height={height}, width={width}, callback_steps={callback_steps}") 
         self.check_inputs(height, width, callback_steps)
 
         # here `guidance_scale` is defined analog to the guidance weight `w` of equation (2)
@@ -377,6 +380,7 @@ class LipsyncPipeline(DiffusionPipeline):
         timesteps = self.scheduler.timesteps
 
         # 4. Prepare extra step kwargs.
+        print(f"prepare extra step kwargs")
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
         self.video_fps = video_fps
@@ -402,7 +406,8 @@ class LipsyncPipeline(DiffusionPipeline):
             num_channels_latents = self.vae.config.latent_channels
         else:
             num_channels_latents = 3
-
+        
+        print(f"prepare_latents")
         all_latents = self.prepare_latents(
             batch_size,
             num_frames * num_inferences,
@@ -504,7 +509,7 @@ class LipsyncPipeline(DiffusionPipeline):
         if is_train:
             self.unet.train()
 
-        temp_dir = "temp"
+        temp_dir = "output"
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
         os.makedirs(temp_dir, exist_ok=True)
@@ -519,10 +524,10 @@ class LipsyncPipeline(DiffusionPipeline):
             write_video("affine_faces.mp4", pixel_values_faces, fps=25)
             write_video("masked_affine_faces.mp4", masked_pixel_values_faces, fps=25)
 
-        temp_video_path = os.path.join(temp_dir, "video.mp4")
-        temp_audio_path = os.path.join(temp_dir, "audio.wav")
+        temp_video_path = os.path.join(temp_dir, f"latentsync_{output_name}_high_video_sync_out.mp4")
+        temp_audio_path = os.path.join(temp_dir, f"latentsync_{output_name}_high_audio_sync__out.wav")
 
-        write_video(temp_video_path, synced_video_frames, fps=25, crf=5, original_video_path=video_path) # Pass original_video_path
+        write_video(temp_video_path, synced_video_frames, fps=25, crf=2, original_video_path=video_path) # Pass original_video_path
         # write_video(video_mask_path, masked_video_frames, fps=25)
 
         sf.write(temp_audio_path, audio_samples, audio_sample_rate)
