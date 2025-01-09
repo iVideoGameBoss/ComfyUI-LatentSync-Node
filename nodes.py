@@ -13,6 +13,76 @@ import argparse
 from omegaconf import OmegaConf
 from PIL import Image
 import shutil
+import cv2
+from typing import Optional, Dict, Any
+
+def get_video_bitrate(video_path):
+    """Get bitrate of video file using ffprobe"""
+    cmd = [
+        'ffprobe', 
+        '-v', 'quiet',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=bit_rate',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        video_path
+    ]
+    try:
+        output = subprocess.check_output(cmd).decode().strip()
+        return int(output) // 1000 if output else 12000
+    except:
+        return 12000
+
+def write_video_high_quality(
+    filename: str,
+    video_array: torch.Tensor,
+    fps: float,
+    video_codec: str = "libx264",
+    options: Optional[Dict[str, Any]] = None,
+    audio_array: Optional[torch.Tensor] = None,
+    audio_fps: Optional[float] = None,
+    audio_codec: Optional[str] = None,
+    audio_options: Optional[Dict[str, Any]] = None,
+) -> None:
+    temp_dir = os.path.dirname(filename)
+    temp_frames_dir = os.path.join(temp_dir, "temp_frames")
+    os.makedirs(temp_frames_dir, exist_ok=True)
+
+    try:
+        # Ensure video_array is on CPU and in the right format
+        if isinstance(video_array, torch.Tensor):
+            video_array = video_array.cpu()
+            if video_array.shape[-1] != 3:  # If not in HWC format
+                video_array = video_array.permute(0, 2, 3, 1)  # BCHW -> BHWC
+
+        for i, frame in enumerate(video_array):
+            # Convert to numpy and ensure in range [0, 255]
+            frame_np = frame.numpy()
+            if frame_np.dtype != np.uint8:
+                frame_np = (frame_np * 255).astype(np.uint8)
+            
+            # Convert RGB to BGR for OpenCV
+            frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame_bgr)
+
+        temp_frames_dir = os.path.normpath(temp_frames_dir).replace('\\', '/')
+        filename = os.path.normpath(filename).replace('\\', '/')
+
+        command = [
+            "ffmpeg",
+            "-y",
+            "-framerate", str(fps),
+            "-i", os.path.join(temp_frames_dir, "frame_%04d.png"),
+            "-c:v", "libx264",
+            "-preset", "slow",
+            "-crf", "5",
+            "-pix_fmt", "yuv420p",
+            filename
+        ]
+        
+        subprocess.run(command, check=True)
+    finally:
+        if os.path.exists(temp_frames_dir):
+            shutil.rmtree(temp_frames_dir)
 
 def import_inference_script(script_path):
     """Import a Python file as a module using its file path."""
@@ -189,7 +259,7 @@ class LatentSyncNode:
         # Create a temporary video file from the input frames
         output_name = ''.join(random.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(5)) # Generates random filename of 5 chars
         temp_video_path = os.path.join(output_dir, f"temp_{output_name}.mp4") # Path for temp video file
-        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_out.mp4") # Path for final output video
+        output_video_path = os.path.join(output_dir, f"latentsync_{output_name}_highres_audio_out.mp4") # Path for final output video
 
         # Save frames as temporary video
         import torchvision.io as io # Import the module to deal with reading and writing videos
@@ -210,7 +280,8 @@ class LatentSyncNode:
         if isinstance(frames, torch.Tensor): # Move the data to cpu
             frames = frames.cpu()
         try:
-            io.write_video(temp_video_path, frames, fps=25, video_codec='h264') # Save frames as a video
+            write_video_high_quality(temp_video_path, frames, fps=25)
+            # io.write_video(temp_video_path, frames, fps=25, video_codec='h264') # Save frames as a video
         # Handles a type error when using a newer version of `torchvision`
         except TypeError:
             # Fallback for newer versions
@@ -291,17 +362,22 @@ class LatentSyncNode:
                 scheduler_config_path=scheduler_config_path,
                 whisper_ckpt_path=whisper_ckpt_path
             )
-           
+            print(f"inference_module args: {args}")
             # Load the config
             config = OmegaConf.load(unet_config_path)
-           
+            
+            print(f"Enter inference_module")
             # Call main with both config and args
             inference_module.main(config, args)
-
-            # Load the processed video back as frames
-            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0] # Read video from the output path, with shape [T, H, W, C]
-            print(f"Frame count after reading video: {processed_frames.shape[0]}") # prints the number of frames in processed video
             
+            print(f"Exit inference_module")
+            print(f"output_video_path: {output_video_path}")
+            # Load the processed video back as frames
+            processed_frames = processed_frames.float() / 255.0 # Normalize to [0, 1]
+            
+
+            print(f"Frame count after reading video: {processed_frames.shape[0]}") # prints the number of frames in processed video
+
             # Process frames following wav2lip.py pattern
             out_tensor_list = []
             for frame in processed_frames:
@@ -326,8 +402,6 @@ class LatentSyncNode:
                 out_tensor_list.append(frame)
 
             processed_frames = torch.stack(out_tensor_list) # Stack the frame tensors together
-            
-            processed_frames = io.read_video(output_video_path, pts_unit='sec')[0]  # [T, H, W, C]
             processed_frames = processed_frames.float() / 255.0 # Normalize to [0, 1]
             print(f"Frame count after normalization: {processed_frames.shape[0]}") # Prints the frame count after normalization
 
@@ -346,10 +420,11 @@ class LatentSyncNode:
             print(f"Final shape: {processed_frames.shape}")
 
             # Clean up
-            if os.path.exists(temp_video_path):
-                os.remove(temp_video_path)
-            if os.path.exists(output_video_path):
-                os.remove(output_video_path)
+            # if os.path.exists(temp_video_path):
+            #     os.remove(temp_video_path)
+            # if os.path.exists(output_video_path):
+            #     os.remove(output_video_path)
+                
             shutil.rmtree(temp_dir, ignore_errors=True)
                 
         # If any of the above steps failed, remove temporary files

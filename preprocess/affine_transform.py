@@ -62,7 +62,7 @@ def combine_video_audio(video_frames, video_input_path, video_output_path, proce
     video_temp = os.path.join(process_temp_dir, f"{video_name}_temp.mp4")
 
     write_video(video_temp, video_frames, fps=25)
-
+    # write_video_high_quality(video_temp, video_frames, fps=25)
     command = f"ffmpeg -y -loglevel error -i {video_input_path} -q:a 0 -map a {audio_temp}"
     subprocess.run(command, shell=True)
 

@@ -32,7 +32,7 @@ from einops import rearrange
 
 from ..models.unet import UNet3DConditionModel
 from ..utils.image_processor import ImageProcessor
-from ..utils.util import read_audio, write_video, read_video
+from ..utils.util import read_audio, write_video, read_video,mux_audio_video
 import tqdm
 import soundfile as sf
 
@@ -290,7 +290,7 @@ class LipsyncPipeline(DiffusionPipeline):
         return original_mel[:, start_idx:end_idx].unsqueeze(0)
 
     def affine_transform_video(self, video_path):
-        video_frames = read_video(video_path, use_decord=True)
+        video_frames = read_video(video_path, change_fps=False,use_decord=True)
         faces = []
         boxes = []
         affine_matrices = []
@@ -354,7 +354,7 @@ class LipsyncPipeline(DiffusionPipeline):
         self.set_progress_bar_config(desc=f"Sample frames: {num_frames}")
 
          # Use decord to directly read video frames
-        original_video_frames = read_video(video_path, use_decord=True)
+        original_video_frames = read_video(video_path, change_fps=False,use_decord=True)
         faces, original_video_frames, boxes, affine_matrices = self.affine_transform_video(video_path)
         
         audio_samples = read_audio(audio_path)
@@ -519,10 +519,20 @@ class LipsyncPipeline(DiffusionPipeline):
             write_video("affine_faces.mp4", pixel_values_faces, fps=25)
             write_video("masked_affine_faces.mp4", masked_pixel_values_faces, fps=25)
 
-        write_video(os.path.join(temp_dir, "video.mp4"), synced_video_frames, fps=25)
+        temp_video_path = os.path.join(temp_dir, "video.mp4")
+        temp_audio_path = os.path.join(temp_dir, "audio.wav")
+
+        write_video(temp_video_path, synced_video_frames, fps=25, crf=5, original_video_path=video_path) # Pass original_video_path
         # write_video(video_mask_path, masked_video_frames, fps=25)
 
-        sf.write(os.path.join(temp_dir, "audio.wav"), audio_samples, audio_sample_rate)
+        sf.write(temp_audio_path, audio_samples, audio_sample_rate)
 
-        command = f"ffmpeg -y -loglevel error -nostdin -i {os.path.join(temp_dir, 'video.mp4')} -i {os.path.join(temp_dir, 'audio.wav')} -c:v libx264 -c:a aac -q:v 0 -q:a 0 {video_out_path}"
-        subprocess.run(command, shell=True)
+        mux_audio_video(temp_video_path, temp_audio_path, video_out_path)
+
+        # Clean up the temp directory
+        # if os.path.exists(temp_dir):
+        #     shutil.rmtree(temp_dir)
+
+
+        # command = f"ffmpeg -y -loglevel error -nostdin -i {os.path.join(temp_dir, 'video.mp4')} -i {os.path.join(temp_dir, 'audio.wav')} -c:v copy -c:a aac  -q:a 0 {video_out_path}"
+        # subprocess.run(command, shell=True)

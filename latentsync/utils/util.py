@@ -1,22 +1,8 @@
-# Copyright (c) 2024 Bytedance Ltd. and/or its affiliates
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import os
 import imageio
 import numpy as np
 import json
-from typing import Union
+from typing import Union, Optional, Dict, Any
 import matplotlib.pyplot as plt
 
 import torch
@@ -25,7 +11,7 @@ import torch.nn.functional as F
 import torchvision
 import torch.distributed as dist
 from torchvision import transforms
-
+import av
 from tqdm import tqdm
 from einops import rearrange
 import cv2
@@ -44,9 +30,9 @@ def read_json(filepath: str):
     return json_dict
 
 
-def read_video(video_path: str, change_fps=True, use_decord=True):
+def read_video(video_path: str, change_fps=False, use_decord=True):
     if change_fps:
-        # Create temp directory next to the video file
+          # Create temp directory next to the video file
         temp_dir = os.path.join(os.path.dirname(video_path), "temp")
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
@@ -57,7 +43,7 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
         temp_video = os.path.join(temp_dir, 'video.mp4').replace('\\', '/')
         
         # Use proper path quoting for FFmpeg
-        command = f'ffmpeg -loglevel error -y -nostdin -i "{video_path}" -r 25 -crf 18 "{temp_video}"'
+        command = f'ffmpeg -loglevel error -y -nostdin -i "{video_path}" -r 25 -crf 2 "{temp_video}"'
         
         print(f"Running FFmpeg command: {command}")
         subprocess.run(command, shell=True, check=True)
@@ -113,7 +99,6 @@ def read_video_cv2(video_path: str):
     print(f"Successfully read {frame_count} frames from video")
     return np.array(frames)
 
-
 def read_audio(audio_path: str, audio_sample_rate: int = 16000):
     if audio_path is None:
         raise ValueError("Audio path is required.")
@@ -126,15 +111,149 @@ def read_audio(audio_path: str, audio_sample_rate: int = 16000):
     return audio_samples
 
 
-def write_video(video_output_path: str, video_frames: np.ndarray, fps: int):
-    height, width = video_frames[0].shape[:2]
-    out = cv2.VideoWriter(video_output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
-    # out = cv2.VideoWriter(video_output_path, cv2.VideoWriter_fourcc(*"vp09"), fps, (width, height))
-    for frame in video_frames:
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        out.write(frame)
-    out.release()
+def get_video_bitrate(video_path: str) -> int:
+    """
+    Extracts the video bitrate using FFmpeg.
 
+    Args:
+        video_path (str): Path to the video file.
+
+    Returns:
+         int: The video bitrate in kbps.
+    """
+    try:
+        command = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=bit_rate",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            video_path,
+        ]
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        bitrate = int(result.stdout.strip()) // 1000  # Convert bits/s to kbps
+        return bitrate
+    except (subprocess.CalledProcessError, ValueError):
+        print(f"Failed to get bitrate for video: {video_path}, defaulting to 12000")
+        return 12000
+
+
+def write_video(
+    filename: str,
+    video_array: Union[torch.Tensor, np.ndarray],
+    fps: float,
+    original_video_path: str = None,
+    video_codec: str = "libx264",
+    options: Optional[Dict[str, Any]] = None,
+    audio_array: Optional[torch.Tensor] = None,
+    audio_fps: Optional[float] = None,
+    audio_codec: Optional[str] = None,
+    audio_options: Optional[Dict[str, Any]] = None,
+    crf: int = 5,
+) -> None:
+    """
+    Writes a 4d tensor in [T, H, W, C] format in a video file using FFmpeg.
+
+    Args:
+        filename (str): path where the video will be saved
+        video_array (Tensor[T, H, W, C]): tensor containing the individual frames,
+            as a uint8 tensor in [T, H, W, C] format
+        fps (Number): video frames per second
+         original_video_path (str, optional): Path to the original video to extract original bitrate.
+        video_codec (str): the name of the video codec, i.e. "libx264", "h264", etc.
+        options (Dict): dictionary containing options to be passed into the PyAV video stream
+        audio_array (Tensor[C, N]): tensor containing the audio, where C is the number of channels
+            and N is the number of samples
+        audio_fps (Number): audio sample rate, typically 44100 or 48000
+        audio_codec (str): the name of the audio codec, i.e. "mp3", "aac", etc.
+        audio_options (Dict): dictionary containing options to be passed into the PyAV audio stream
+    """
+    if isinstance(video_array, torch.Tensor):
+        height, width = video_array.shape[1], video_array.shape[2]
+    elif isinstance(video_array, np.ndarray):
+        height, width = video_array[0].shape[:2]
+    else:
+        raise TypeError(f"Expected torch.Tensor or np.ndarray but got {type(video_array)}")
+        
+    temp_dir = os.path.dirname(filename)
+    temp_frames_dir = os.path.join(temp_dir, "temp_frames")
+    os.makedirs(temp_frames_dir, exist_ok=True)
+
+    if isinstance(video_array, torch.Tensor):
+        for i, frame in enumerate(video_array):
+                if frame.is_cuda:
+                    frame = frame.cpu().numpy() # if frame is on GPU move it to CPU
+                else:
+                    frame = frame.numpy() # if frame is already on CPU, convert it to numpy
+                frame = frame.astype(np.uint8)
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame)
+    elif isinstance(video_array, np.ndarray):
+          for i, frame in enumerate(video_array):
+               frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+               cv2.imwrite(os.path.join(temp_frames_dir, f"frame_{i:04d}.png"), frame)
+
+    bitrate = 12000 # Set a fixed 12000kbps bitrate
+    
+    # Normalize paths for Windows
+    temp_frames_dir = os.path.normpath(temp_frames_dir).replace('\\', '/')
+    filename = os.path.normpath(filename).replace('\\', '/')
+        
+    command = [
+        "ffmpeg",
+        "-y",
+        "-framerate",
+        str(fps),
+        "-i",
+        os.path.join(temp_frames_dir, "frame_%04d.png"),
+        "-c:v",
+        "libx264",
+         "-crf",
+        str(crf),
+        "-pix_fmt",
+        "yuv420p",
+        filename,
+    ]
+        
+    print(f"Running FFmpeg command: {' '.join(command)}")
+    subprocess.run(command, shell=False, check=True)
+    shutil.rmtree(temp_frames_dir)
+
+def mux_audio_video(video_path: str, audio_path: str, output_path: str) -> None:
+    """
+    Muxes an audio and a video file into one file. This will avoid recoding the video stream.
+        
+    Args:
+        video_path (str): path to the video file.
+        audio_path (str): Path to the audio file.
+        output_path (str): Path for the final video with audio muxed.
+    """
+    # Normalize paths for Windows
+    video_path = os.path.normpath(video_path).replace('\\', '/')
+    audio_path = os.path.normpath(audio_path).replace('\\', '/')
+    output_path = os.path.normpath(output_path).replace('\\', '/')
+
+    command = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-i",
+            audio_path,
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-q:a",
+            "0",
+            output_path,
+            ]
+    print(f"Running FFmpeg command: {' '.join(command)}")
+    subprocess.run(command, shell=False, check=True)
 
 def init_dist(backend="nccl", **kwargs):
     """Initializes distributed environment."""
@@ -270,11 +389,9 @@ def next_step(
     next_sample = alpha_prod_t_next**0.5 * next_original_sample + next_sample_direction
     return next_sample
 
-
 def get_noise_pred_single(latents, t, context, unet):
     noise_pred = unet(latents, t, encoder_hidden_states=context)["sample"]
     return noise_pred
-
 
 @torch.no_grad()
 def ddim_loop(pipeline, ddim_scheduler, latent, num_inv_steps, prompt):
@@ -289,12 +406,10 @@ def ddim_loop(pipeline, ddim_scheduler, latent, num_inv_steps, prompt):
         all_latent.append(latent)
     return all_latent
 
-
 @torch.no_grad()
 def ddim_inversion(pipeline, ddim_scheduler, video_latent, num_inv_steps, prompt=""):
     ddim_latents = ddim_loop(pipeline, ddim_scheduler, video_latent, num_inv_steps, prompt)
     return ddim_latents
-
 
 def plot_loss_chart(save_path: str, *args):
     # Creating the plot
@@ -311,17 +426,13 @@ def plot_loss_chart(save_path: str, *args):
     # Close the figure to free memory
     plt.close()
 
-
 CRED = "\033[91m"
 CEND = "\033[0m"
-
 
 def red_text(text: str):
     return f"{CRED}{text}{CEND}"
 
-
 log_loss = nn.BCELoss(reduction="none")
-
 
 def cosine_loss(vision_embeds, audio_embeds, y):
     sims = nn.functional.cosine_similarity(vision_embeds, audio_embeds)
@@ -330,7 +441,6 @@ def cosine_loss(vision_embeds, audio_embeds, y):
     loss = log_loss(sims.unsqueeze(1), y).squeeze()
     return loss
 
-
 def save_image(image, save_path):
     # input size (C, H, W)
     image = (image / 2 + 0.5).clamp(0, 1)
@@ -338,7 +448,6 @@ def save_image(image, save_path):
     image = transforms.ToPILImage()(image)
     # Save the image copy
     image.save(save_path)
-
     # Close the image file
     image.close()
 
@@ -360,7 +469,6 @@ def gather_video_paths_recursively(input_dir):
     gather_video_paths(input_dir, paths)
     return paths
 
-
 def gather_video_paths(input_dir, paths):
     for file in sorted(os.listdir(input_dir)):
         if file.endswith(".mp4"):
@@ -368,7 +476,6 @@ def gather_video_paths(input_dir, paths):
             paths.append(filepath)
         elif os.path.isdir(os.path.join(input_dir, file)):
             gather_video_paths(os.path.join(input_dir, file), paths)
-
 
 def count_video_time(video_path):
     video = cv2.VideoCapture(video_path)
