@@ -4,7 +4,12 @@
 
 `ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave with high resolution output.
 
+[https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907](https://github.com/user-attachments/assets/46addfac-6432-4a49-a0b4-4c02bcb424ba)
+
 ## 👄 Unleash the Power of Speech: Your Dreams, Now in Sync with Reality!
+
+
+![ComfyUI-LatentSync-Node](https://github.com/user-attachments/assets/0d07328d-ba18-4337-8b6f-488498d3cac6)
 
 Tired of boring A.I. characters that can't speak and lifeless A.I. videos? Prepare to witness a revolution in digital expression!  **ComfyUI-LatentSync-Node** is here to empower *you* to bring your wildest creative visions to life, right on your local machine.
 
@@ -29,11 +34,6 @@ Imagine creating:
 This isn't just about syncing lips; it's about **unlocking a new dimension of creative expression**. Stop dreaming about what could be and start creating the impossible.  
 
 **Ready to transform your projects? Dive into `ComfyUI-LatentSync-Node` today and let your voice be heard!**
-
-![ComfyUI-LatentSync-Node](https://github.com/user-attachments/assets/0d07328d-ba18-4337-8b6f-488498d3cac6)
-
-[
-https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907](https://github.com/user-attachments/assets/46addfac-6432-4a49-a0b4-4c02bcb424ba)
 
 
 ## Prerequisites
