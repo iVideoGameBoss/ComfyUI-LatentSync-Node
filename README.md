@@ -14,7 +14,7 @@ This isn't just another node; it's a gateway to **perfectly synchronized lip mov
 
 ## Inspired by Innovation:
 
-`ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave.
+`ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave with high resolution output.
 
 ## Why Choose ComfyUI-LatentSync-Node?
 
