@@ -30,10 +30,10 @@ This isn't just about syncing lips; it's about **unlocking a new dimension of cr
 
 **Ready to transform your projects? Dive into `ComfyUI-LatentSync-Node` today and let your voice be heard!**
 
-![Screenshot 2025-01-02 210507](https://github.com/user-attachments/assets/df4c83a9-d170-4eb2-b406-38fb7a93c6aa)
+![ComfyUI-LatentSync-Node](https://github.com/user-attachments/assets/0d07328d-ba18-4337-8b6f-488498d3cac6)
 
-
-https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907
+[
+https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907](https://github.com/user-attachments/assets/46addfac-6432-4a49-a0b4-4c02bcb424ba)
 
 
 ## Prerequisites
