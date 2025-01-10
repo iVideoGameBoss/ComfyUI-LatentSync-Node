@@ -1,5 +1,5 @@
-# ComfyUI-LatentSync-Node
-## 👄 Unleash the Power of Speech: Your Dreams, Now in Sync with Reality! High-Resolution Lip-Sync
+# ComfyUI-LatentSync-Node - High-Resolution Lip-Sync
+## 👄 Unleash the Power of Speech: Your Dreams, Now in Sync with Reality!
 
 Tired of boring A.I. characters that can't speak and lifeless A.I. videos? Prepare to witness a revolution in digital expression!  **ComfyUI-LatentSync-Node** is here to empower *you* to bring your wildest creative visions to life, right on your local machine.
 
