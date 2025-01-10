@@ -126,6 +126,12 @@ The processed video will be saved in ComfyUI's output directory.
 - Video should be at 25 FPS (will be automatically converted)
 - Face should be visible throughout the video
 
+## How A.I. Face Swap Works and Key to Understanding A.I. face Rotations and its Limits (click image to watch video)
+
+[![Roop Face Tracking](https://i.ytimg.com/vi/BzTqrIm69Ws/maxresdefault.jpg)](https://youtu.be/BzTqrIm69Ws?si=C4t7jL6CJ9JvdgX0)
+
+### click image to watch video [Roop Deep Fake Course](https://youtu.be/BzTqrIm69Ws?si=C4t7jL6CJ9JvdgX0)
+
 ### NEW - Video Length Adjuster Node
 A complementary node that helps manage video length and synchronization with audio.
 
