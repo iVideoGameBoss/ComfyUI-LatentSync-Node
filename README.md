@@ -1,4 +1,9 @@
 # ComfyUI-LatentSync-Node - High-Resolution Lip-Sync
+
+## Inspired by Innovation:
+
+`ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave with high resolution output.
+
 ## 👄 Unleash the Power of Speech: Your Dreams, Now in Sync with Reality!
 
 Tired of boring A.I. characters that can't speak and lifeless A.I. videos? Prepare to witness a revolution in digital expression!  **ComfyUI-LatentSync-Node** is here to empower *you* to bring your wildest creative visions to life, right on your local machine.
@@ -11,10 +16,6 @@ This isn't just another node; it's a gateway to **perfectly synchronized lip mov
 *   **High-Resolution Brilliance:**  Experience jaw-dropping, high-resolution lip-sync results that will elevate your projects to a new level.
 *   **Unleash Your Inner Director:**  Craft scenarios where any character can deliver your dialogue with lifelike precision.
 *   **Voice Your Vision:** Use your own voice for personalized narratives, or explore the endless possibilities of voice cloning with [F4-TTS](https://github.com/SWivid/F5-TTS).  We highly recommend using [Pinokio](https://pinokio.computer/) to set up F5-TTS with ease.
-
-## Inspired by Innovation:
-
-`ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave with high resolution output.
 
 ## Why Choose ComfyUI-LatentSync-Node?
 
