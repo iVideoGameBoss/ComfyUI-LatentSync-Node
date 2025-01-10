@@ -37,14 +37,22 @@ https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907
 
 ## Prerequisites
 
+# You must be running ComfyUI in Python 3.8-3.11 to use ComfyUI-LatentSync-Node as it uses mediapipe 
+
 Before installing this node, you must install the following in order:
 
-1. [ComfyUI](https://github.com/comfyanonymous/ComfyUI) installed and working
-2. Python 3.8-3.11 (mediapipe is not yet compatible with Python 3.12)
-3. FFmpeg installed on your system:
+**What Your Computer Needs**: 
+1. **NVIDIA Graphics Card**: At least 8GB memory (newer models work best).  
+2. **[CUDA Toolkit 11.8](https://developer.nvidia.com/cuda-11-8-0-download-archive)** (fancy software to make it run faster).  
+3.**Windows 10 or 11**.  
+4.**16GB RAM** (for best results).  
+5.  [visual studio 2022 runtimes (windows)](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+6. [ComfyUI](https://github.com/comfyanonymous/ComfyUI) installed and working with Python 3.8-3.11
+7. Python 3.8-3.11 (mediapipe is not yet compatible with Python 3.12)
+8. FFmpeg installed on your system:
    - Windows: Download from [here](https://github.com/BtbN/FFmpeg-Builds/releases) and add to system PATH
 
-2. If you get PYTHONPATH errors:
+9. If you get PYTHONPATH errors:
    - Make sure Python is in your system PATH
    - Try running ComfyUI as administrator
      
