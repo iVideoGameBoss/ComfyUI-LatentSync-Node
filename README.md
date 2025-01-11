@@ -4,7 +4,7 @@
 
 `ComfyUI-LatentSync-Node` builds upon the groundwork laid by  [ComfyUI-LatentSyncWrapper](https://github.com/ShmuelRonen/ComfyUI-LatentSyncWrapper), itself a brilliant implementation of the groundbreaking [LatentSync](https://github.com/bytedance/LatentSync) code, adapted for the world of [ComfyUI](https://github.com/comfyanonymous/ComfyUI) on Windows.  We've taken that inspiration and pushed it further to give you the power you crave with high resolution output.
 
-[https://github.com/user-attachments/assets/49c40cf4-5db1-46c5-99a4-7fbb2031c907](https://github.com/user-attachments/assets/46addfac-6432-4a49-a0b4-4c02bcb424ba)
+[https://github.com/user-attachments/assets/b4730605-dbe5-4894-8a52-b776b481fa63](https://github.com/user-attachments/assets/b4730605-dbe5-4894-8a52-b776b481fa63)
 
 ## 👄 Unleash the Power of Speech: Your Dreams, Now in Sync with Reality!
 
