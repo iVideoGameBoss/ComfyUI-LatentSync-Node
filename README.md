@@ -34,7 +34,20 @@ Imagine creating:
 This isn't just about syncing lips; it's about **unlocking a new dimension of creative expression**. Stop dreaming about what could be and start creating the impossible.  
 
 ## Make Your Social Media Influencers Talk
-[https://github.com/user-attachments/assets/c087ba3f-2eae-49db-88fd-7101b62ffff4](https://github.com/user-attachments/assets/579505ac-5fa1-46a9-8776-01a92dc978c1)
+<table class="center">
+  <tr style="font-weight: bolder;text-align:center;">
+        <td ><b>Zombie</b></td>
+        <td ><b>Jesus</b></td>
+  </tr>
+  <tr>
+    <td>
+      <video src=https://github.com/user-attachments/assets/579505ac-5fa1-46a9-8776-01a92dc978c1 controls preload></video>
+    </td>
+    <td>
+      <video src=https://github.com/user-attachments/assets/015a628f-7b38-4f39-b3dd-907d44a27008 controls preload></video>
+    </td>
+  </tr>
+</table>
 
 **Ready to transform your projects? Dive into `ComfyUI-LatentSync-Node` today and let your voice be heard!**
 
