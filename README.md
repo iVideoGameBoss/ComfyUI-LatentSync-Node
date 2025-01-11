@@ -33,10 +33,10 @@ Imagine creating:
 
 This isn't just about syncing lips; it's about **unlocking a new dimension of creative expression**. Stop dreaming about what could be and start creating the impossible.  
 
-https://github.com/user-attachments/assets/c087ba3f-2eae-49db-88fd-7101b62ffff4
+## Make Your Social Media Influencers Talk
+[https://github.com/user-attachments/assets/c087ba3f-2eae-49db-88fd-7101b62ffff4](https://github.com/user-attachments/assets/579505ac-5fa1-46a9-8776-01a92dc978c1)
 
 **Ready to transform your projects? Dive into `ComfyUI-LatentSync-Node` today and let your voice be heard!**
-
 
 ## Prerequisites
 
