@@ -22,7 +22,7 @@ This isn't just another node; it's a gateway to **perfectly synchronized lip mov
 *   **Unleash Your Inner Director:**  Craft scenarios where any character can deliver your dialogue with lifelike precision.
 *   **Voice Your Vision:** Use your own voice for personalized narratives, or explore the endless possibilities of voice cloning with [F4-TTS](https://github.com/SWivid/F5-TTS).  We highly recommend using [Pinokio](https://pinokio.computer/) to set up F5-TTS with ease.
 
-## Why Choose ComfyUI-LatentSync-Node?
+## Create with ComfyUI-LatentSync-Node
 
 Imagine creating:
 
@@ -32,6 +32,8 @@ Imagine creating:
 *   **High Resolution Output** that give you the power to create clear lip-Sync videos.
 
 This isn't just about syncing lips; it's about **unlocking a new dimension of creative expression**. Stop dreaming about what could be and start creating the impossible.  
+
+https://github.com/user-attachments/assets/c087ba3f-2eae-49db-88fd-7101b62ffff4
 
 **Ready to transform your projects? Dive into `ComfyUI-LatentSync-Node` today and let your voice be heard!**
 
