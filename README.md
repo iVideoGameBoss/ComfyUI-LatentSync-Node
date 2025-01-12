@@ -44,7 +44,7 @@ This isn't just about syncing lips; it's about **unlocking a new dimension of cr
       <video src=https://github.com/user-attachments/assets/579505ac-5fa1-46a9-8776-01a92dc978c1 controls preload></video>
     </td>
     <td>
-      <video src=https://github.com/user-attachments/assets/015a628f-7b38-4f39-b3dd-907d44a27008 controls preload></video>
+      <video src=https://github.com/user-attachments/assets/fac8a109-b90a-4e79-b38b-01b75df54dcf controls preload></video>
     </td>
   </tr>
 </table>
